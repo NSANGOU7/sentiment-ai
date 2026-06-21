@@ -4,7 +4,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'sentiment-ai'
-        REGISTRY = 'ghcr.io/NSANGOU7'
+        REGISTRY = 'ghcr.io/nsangou7'
         IMAGE_TAG = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
     }
 
