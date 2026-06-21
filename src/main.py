@@ -1,4 +1,4 @@
-# Pipeline CI/CD testé avec succès - TP2
+# Pipeline CI/CD testé avec succès - TP2 nsangou
 from fastapi import FastAPI
 from src.schemas import PredictionRequest, PredictionResponse
 from src.model import SentimentModel
