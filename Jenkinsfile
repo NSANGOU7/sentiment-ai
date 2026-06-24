@@ -137,8 +137,8 @@ pipeline {
     steps {
         echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
         sh '''
-            docker compose --project-name staging down 2>/dev/null || true
-            docker compose --project-name staging up -d
+            docker-compose -p staging down 2>/dev/null || true
+            docker-compose -p staging up -d
             echo "Staging disponible sur http://localhost:8001"
         '''
     }
@@ -146,9 +146,9 @@ pipeline {
     }
 
     post {
-        always {
-            sh 'docker compose down -v 2>/dev/null || true'
-        }
+    always {
+        sh 'docker-compose down -v 2>/dev/null || true'
+    }
         success {
             echo "Pipeline réussi ! Image : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
         }
