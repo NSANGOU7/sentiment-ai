@@ -1,4 +1,3 @@
-// Jenkinsfile - Pipeline CI/CD SentimentAI
 pipeline {
     agent any
 
@@ -27,6 +26,16 @@ pipeline {
                     python:3.12-slim \
                     sh -c "pip install flake8 -q && flake8 src/ --max-line-length=100"
                 '''
+            }
+        }
+
+        stage('IaC Validate') {
+            steps {
+                dir('infra') {
+                    sh 'terraform init -backend=false -input=false'
+                    sh 'terraform fmt -check'
+                    sh 'terraform validate'
+                }
             }
         }
 
@@ -97,7 +106,7 @@ pipeline {
 
         stage('Security Scan') {
             steps {
-                sh """
+                sh '''
                     docker run --rm \
                     -v /var/run/docker.sock:/var/run/docker.sock \
                     -v trivy-cache:/root/.cache/trivy \
@@ -106,14 +115,7 @@ pipeline {
                     --exit-code 0 \
                     --format table \
                     --timeout 10m \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
-                """
-            }
-            post {
-                failure {
-                    echo 'Vulnérabilités CRITICAL ou HIGH détectées !'
-                    echo 'Corrigez les dépendances avant de déployer.'
-                }
+                    ''' + "${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
 
@@ -136,34 +138,36 @@ pipeline {
             }
         }
 
+        stage('IaC Apply') {
+            when { expression { env.GIT_BRANCH == 'origin/main' } }
+            steps {
+                dir('infra') {
+                    sh 'terraform init -input=false'
+                    sh """
+                        terraform apply -auto-approve \
+                        -var='image_tag=${IMAGE_TAG}'
+                    """
+                }
+            }
+        }
+
         stage('Deploy Staging') {
-    when { expression { env.GIT_BRANCH == 'origin/main' } }
-    steps {
-        echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
-        sh """
-            docker stop sentiment-ai-staging 2>/dev/null || true
-            docker rm sentiment-ai-staging 2>/dev/null || true
-            docker run -d \
-                --name sentiment-ai-staging \
-                --network cicd-network \
-                -p 8001:8000 \
-                ${IMAGE_NAME}:${IMAGE_TAG}
-            echo "Staging disponible sur http://localhost:8001"
-        """
-    }
-}
+            when { expression { env.GIT_BRANCH == 'origin/main' } }
+            steps {
+                sh 'curl -f http://localhost:8001/health || exit 1'
+            }
+        }
     }
 
     post {
-    always {
-        sh 'docker stop sentiment-ai-staging 2>/dev/null || true'
-    }
-    success {
-        echo "Pipeline réussi !"
-    }
-    failure {
-        echo 'Pipeline échoué. Consultez les logs ci-dessus.'
-    }
-
+        always {
+            sh 'docker stop sentiment-ai-staging 2>/dev/null || true'
+        }
+        success {
+            echo "Pipeline réussi ! Image : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+        }
+        failure {
+            echo 'Pipeline échoué. Consultez les logs ci-dessus.'
+        }
     }
 }
