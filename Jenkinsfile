@@ -132,13 +132,14 @@ pipeline {
                 }
             }
         }
+        
         stage('Deploy Staging') {
     when { expression { env.GIT_BRANCH == 'origin/main' } }
     steps {
         echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
         sh '''
-            docker-compose -p staging down 2>/dev/null || true
-            docker-compose -p staging up -d
+            docker compose down 2>/dev/null || true
+            docker compose up -d
             echo "Staging disponible sur http://localhost:8001"
         '''
     }
@@ -147,8 +148,10 @@ pipeline {
 
     post {
     always {
-        sh 'docker-compose down -v 2>/dev/null || true'
+        sh 'docker compose down -v 2>/dev/null || true'
     }
+    ...
+}
         success {
             echo "Pipeline réussi ! Image : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
         }
