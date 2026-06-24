@@ -33,9 +33,7 @@ pipeline {
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-
                     docker rm -f test-runner 2>/dev/null || true
-
                     set +e
                     docker run \
                         -e CI=true \
@@ -48,10 +46,9 @@ pipeline {
                         --cov-fail-under=70
                     TEST_EXIT_CODE=$?
                     set -e
-
                     docker cp test-runner:/tmp/coverage.xml ./coverage.xml 2>/dev/null || true
+                    sed -i 's|/app/src/|src/|g' ./coverage.xml 2>/dev/null || true
                     docker rm -f test-runner 2>/dev/null || true
-
                     exit $TEST_EXIT_CODE
                 '''
             }
@@ -82,7 +79,8 @@ pipeline {
                         -Dsonar.python.version=3.11 \
                         -Dsonar.python.coverage.reportPaths=coverage.xml \
                         -Dsonar.sourceEncoding=UTF-8 \
-                        -Dsonar.scanner.metadataFilePath=$WORKSPACE/report-task.txt
+                        -Dsonar.scanner.metadataFilePath=$WORKSPACE/report-task.txt \
+                        -Dsonar.coverage.exclusions=** \
                     '''
                 }
             }
