@@ -94,25 +94,26 @@ pipeline {
             }
         }
         stage('Security Scan') {
-            steps {
-                sh '''
-                    docker run --rm \
-                    -v /var/run/docker.sock:/var/run/docker.sock \
-                    -v trivy-cache:/root/.cache/trivy \
-                    aquasec/trivy:latest image \
-                    --severity HIGH,CRITICAL \
-                    --exit-code 0 \
-                    --format table \
-                    --timeout 10m \
-                    ''' + "${IMAGE_NAME}:${IMAGE_TAG}"
-            }
-            post {
-                failure {
-                    echo 'Vulnérabilités CRITICAL ou HIGH détectées !'
-                    echo 'Corrigez les dépendances avant de déployer.'
-                }
-            }
+    steps {
+        sh """
+            docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v trivy-cache:/root/.cache/trivy \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            --format table \
+            --timeout 10m \
+            ${IMAGE_NAME}:${IMAGE_TAG}
+        """
+    }
+    post {
+        failure {
+            echo 'Vulnérabilités CRITICAL ou HIGH détectées !'
+            echo 'Corrigez les dépendances avant de déployer.'
         }
+    }
+}
 
         stage('Push') {
             when { expression { env.GIT_BRANCH == 'origin/main' } }
@@ -132,7 +133,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Deploy Staging') {
     when { expression { env.GIT_BRANCH == 'origin/main' } }
     steps {
