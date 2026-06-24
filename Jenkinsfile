@@ -29,6 +29,7 @@ pipeline {
                 '''
             }
         }
+
         stage('Build & Test') {
             steps {
                 sh '''
@@ -80,7 +81,7 @@ pipeline {
                         -Dsonar.python.coverage.reportPaths=coverage.xml \
                         -Dsonar.sourceEncoding=UTF-8 \
                         -Dsonar.scanner.metadataFilePath=$WORKSPACE/report-task.txt \
-                        -Dsonar.coverage.exclusions=** \
+                        -Dsonar.coverage.exclusions=**
                     '''
                 }
             }
@@ -93,27 +94,28 @@ pipeline {
                 }
             }
         }
+
         stage('Security Scan') {
-    steps {
-        sh """
-            docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v trivy-cache:/root/.cache/trivy \
-            aquasec/trivy:latest image \
-            --severity HIGH,CRITICAL \
-            --exit-code 0 \
-            --format table \
-            --timeout 10m \
-            ${IMAGE_NAME}:${IMAGE_TAG}
-        """
-    }
-    post {
-        failure {
-            echo 'Vulnérabilités CRITICAL ou HIGH détectées !'
-            echo 'Corrigez les dépendances avant de déployer.'
+            steps {
+                sh """
+                    docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v trivy-cache:/root/.cache/trivy \
+                    aquasec/trivy:latest image \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 0 \
+                    --format table \
+                    --timeout 10m \
+                    ${IMAGE_NAME}:${IMAGE_TAG}
+                """
+            }
+            post {
+                failure {
+                    echo 'Vulnérabilités CRITICAL ou HIGH détectées !'
+                    echo 'Corrigez les dépendances avant de déployer.'
+                }
+            }
         }
-    }
-}
 
         stage('Push') {
             when { expression { env.GIT_BRANCH == 'origin/main' } }
@@ -135,26 +137,24 @@ pipeline {
         }
 
         stage('Deploy Staging') {
-    when { expression { env.GIT_BRANCH == 'origin/main' } }
-    steps {
-        echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
-        sh '''
-            docker compose down 2>/dev/null || true
-            docker compose up -d
-            echo "Staging disponible sur http://localhost:8001"
-        '''
-    }
-}
+            when { expression { env.GIT_BRANCH == 'origin/main' } }
+            steps {
+                echo "Déploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
+                sh '''
+                    docker compose down 2>/dev/null || true
+                    docker compose up -d
+                    echo "Staging disponible sur http://localhost:8001"
+                '''
+            }
+        }
     }
 
     post {
-    always {
-        sh 'docker compose down -v 2>/dev/null || true'
-    }
-    ...
-}
+        always {
+            sh 'docker compose down -v 2>/dev/null || true'
+        }
         success {
-            echo "Pipeline réussi ! Image : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Pipeline réussi !"
         }
         failure {
             echo 'Pipeline échoué. Consultez les logs ci-dessus.'
