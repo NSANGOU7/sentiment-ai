@@ -154,7 +154,7 @@ pipeline {
         stage('Deploy Staging') {
     when { expression { env.GIT_BRANCH == 'origin/main' } }
     steps {
-        sh 'docker exec sentiment-staging curl -f http://localhost:8000/health || exit 1'
+        sh 'docker exec sentiment-staging python -c "import urllib.request; urllib.request.urlopen(\'http://localhost:8000/health\')" || exit 1'
     }
 }
     }
