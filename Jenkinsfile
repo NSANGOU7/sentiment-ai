@@ -80,7 +80,6 @@ pipeline {
                         -Dsonar.python.coverage.reportPaths=coverage.xml \
                         -Dsonar.sourceEncoding=UTF-8 \
                         -Dsonar.scanner.metadataFilePath=$WORKSPACE/report-task.txt \
-                        -Dsonar.coverage.exclusions=** \
                     '''
                 }
             }
